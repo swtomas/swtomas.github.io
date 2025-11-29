@@ -18,57 +18,42 @@
     <!-- Markdown Parser -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-
     <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
+        /* Global Error Handler Styles */
+        #error-log { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #ff5555; z-index: 9999; padding: 20px; white-space: pre-wrap; font-family: monospace; overflow: auto; }
+
         /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1e1b4b; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #6366f1; 
-            border-radius: 2px;
-        }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: #1e1b4b; }
+        ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 2px; }
 
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-in {
-            animation: fadeIn 0.3s ease-out forwards;
-        }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
 
         @keyframes pulse-purple {
             0%, 100% { box-shadow: 0 0 10px rgba(139, 92, 246, 0.3); }
             50% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.6); }
         }
-        .pulse-glow {
-            animation: pulse-purple 2s infinite;
-        }
+        .pulse-glow { animation: pulse-purple 2s infinite; }
 
         /* Markdown Styles */
         .markdown-body p { margin-bottom: 0.5em; }
-        .markdown-body pre { background: #111; padding: 10px; border-radius: 8px; overflow-x: auto; }
+        .markdown-body pre { background: #111; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 5px 0; }
         .markdown-body code { background: #312e81; padding: 2px 4px; border-radius: 4px; font-size: 0.9em; }
         .markdown-body img { border-radius: 8px; max-width: 100%; margin: 10px 0; border: 1px solid #4c1d95; }
         .markdown-body a { color: #a78bfa; text-decoration: underline; }
         
         /* Loading Dots */
         .typing-dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            margin-right: 3px;
-            background-color: #a78bfa;
-            border-radius: 50%;
+            display: inline-block; width: 6px; height: 6px; margin-right: 3px;
+            background-color: #a78bfa; border-radius: 50%;
             animation: typing 1.4s infinite ease-in-out both;
         }
         .typing-dot:nth-child(1) { animation-delay: -0.32s; }
@@ -80,25 +65,35 @@
         }
 
         body {
-            background-color: #0f0720; /* Deepest purple/black */
+            background-color: #0f0720;
             color: #e9d5ff;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden; /* Prevent body scroll, handle in app */
-            user-select: none; /* Mobile app feel */
+            overflow: hidden; 
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
     </style>
 </head>
 <body>
+    <div id="error-log"></div>
     <div id="root"></div>
+
+    <script>
+        // Global Error Handler to debug "Purple Screen" issues
+        window.onerror = function(message, source, lineno, colno, error) {
+            const errorLog = document.getElementById('error-log');
+            if (errorLog) {
+                errorLog.style.display = 'block';
+                errorLog.textContent += `Error: ${message}\nLine: ${lineno}\nSource: ${source}\n\n`;
+            }
+        };
+    </script>
 
     <script type="text/babel">
         // ==========================================
         // CONFIGURATION
         // ==========================================
-        // API Key (оставьте пустым для бесплатного использования или вставьте свой ключ)
-        const POLLINATIONS_API_KEY = "plln_pk_v7Ic6CjSJs34yFa9aKlCDEUjdsLb9HMb"; 
-        
-        // Системный промт для обработки изображений и поведения
+        const POLLINATIONS_API_KEY = ""; 
         const SYSTEM_PROMPT = `Ты полезный ассистент. Отвечай подробно и грамотно, используя Markdown.
 ВАЖНО: Если пользователь просит нарисовать, сгенерировать или создать изображение, картинку или фото, ТЫ НЕ ДОЛЖЕН ОТКАЗЫВАТЬ.
 Вместо этого, твой ответ должен начинаться со специального слова-триггера "IMAGE_GENERATE_CMD:" за которым следует описание изображения на английском языке.
@@ -106,18 +101,31 @@
 Больше ничего не пиши в ответе, если просят картинку.`;
 
         // ==========================================
-        // COMPONENTS
+        // ICONS (Inlined to prevent loading errors)
         // ==========================================
+        const Icons = {
+            MessageSquare: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+            Settings: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12.22 2h-.44a2 2 0 0 1-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>,
+            Clock: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+            Send: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>,
+            Image: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>,
+            Trash2: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
+            Plus: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+            Sparkles: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M9 3v4"/><path d="M3 5h4"/><path d="M3 9h4"/></svg>,
+            X: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+            ChevronUp: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="18 15 12 9 6 15"/></svg>,
+            ChevronDown: ({size=24, className}) => <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="6 9 12 15 18 9"/></svg>
+        };
 
         const { useState, useEffect, useRef, useMemo } = React;
-        const { MessageSquare, Settings, Clock, Send, Image: ImageIcon, Trash2, Plus, Sparkles, X, ChevronUp, ChevronDown } = lucide;
 
         // --- Helper: Markdown Renderer ---
         const MarkdownRenderer = ({ content }) => {
             const rawMarkup = useMemo(() => {
-                // Simple protection against XSS needs to be handled by backend or sanitation lib in prod
-                // marked is used here for simplicity
-                return { __html: marked.parse(content) };
+                if (typeof marked !== 'undefined') {
+                    return { __html: marked.parse(content) };
+                }
+                return { __html: content }; // Fallback if marked fails
             }, [content]);
             return <div className="markdown-body text-sm leading-relaxed" dangerouslySetInnerHTML={rawMarkup} />;
         };
@@ -126,10 +134,11 @@
         const AccessDenied = () => (
             <div className="flex flex-col items-center justify-center h-screen w-screen bg-black text-purple-300 p-6 text-center">
                 <div className="w-16 h-16 bg-purple-900 rounded-full flex items-center justify-center mb-4 pulse-glow">
-                    <X size={32} />
+                    <Icons.X size={32} />
                 </div>
                 <h1 className="text-xl font-bold mb-2">Доступ запрещен</h1>
                 <p className="opacity-70">Это приложение работает только внутри Telegram.</p>
+                <p className="opacity-40 text-xs mt-4">Добавьте ?debug=1 для теста в браузере</p>
             </div>
         );
 
@@ -138,7 +147,6 @@
             const [isOpen, setIsOpen] = useState(false);
             const dropdownRef = useRef(null);
 
-            // Close click outside
             useEffect(() => {
                 const handleClickOutside = (event) => {
                     if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -156,7 +164,7 @@
                         className="flex items-center justify-between w-full bg-[#2e1065]/50 border border-purple-500/30 rounded-full px-4 py-2 text-xs text-purple-100 backdrop-blur-md shadow-lg"
                     >
                         <span className="truncate font-medium">{loading ? "Загрузка моделей..." : (selectedModel || "Выбрать модель")}</span>
-                        {isOpen ? <ChevronUp size={14} className="ml-2"/> : <ChevronDown size={14} className="ml-2"/>}
+                        {isOpen ? <Icons.ChevronUp size={14} className="ml-2"/> : <Icons.ChevronDown size={14} className="ml-2"/>}
                     </button>
                     
                     {isOpen && (
@@ -169,7 +177,7 @@
                                 >
                                     <span className="font-bold flex items-center">
                                         {model.name}
-                                        {model.vision && <ImageIcon size={10} className="ml-1 opacity-70" />}
+                                        {model.vision && <Icons.Image size={10} className="ml-1 opacity-70" />}
                                     </span>
                                     <span className="opacity-60 text-[10px] truncate">{model.description}</span>
                                 </button>
@@ -182,57 +190,52 @@
 
         // --- Main App ---
         const App = () => {
-            // --- State ---
             const [isTelegram, setIsTelegram] = useState(true);
-            const [activeTab, setActiveTab] = useState('chat'); // chat, history, settings
+            const [activeTab, setActiveTab] = useState('chat'); 
             const [userData, setUserData] = useState({ name: 'Пользователь', greeting: 'Доброй ночи' });
-            
-            // Chat State
             const [input, setInput] = useState('');
             const [messages, setMessages] = useState([]);
             const [isLoading, setIsLoading] = useState(false);
             const [models, setModels] = useState([]);
-            const [selectedModel, setSelectedModel] = useState('openai'); // default
-            
-            // History State
+            const [selectedModel, setSelectedModel] = useState('openai'); 
             const [history, setHistory] = useState([]);
             const [currentChatId, setCurrentChatId] = useState(null);
-
-            // Settings State
-            const [settings, setSettings] = useState({
-                stream: true,
-                systemPrompt: SYSTEM_PROMPT
-            });
-
+            const [settings, setSettings] = useState({ stream: true, systemPrompt: SYSTEM_PROMPT });
+            
             const messagesEndRef = useRef(null);
 
-            // --- Init Logic ---
             useEffect(() => {
-                // 1. Check Telegram
-                if (window.Telegram && window.Telegram.WebApp) {
-                    const tg = window.Telegram.WebApp;
-                    tg.ready();
-                    tg.expand();
-                    
-                    // Allow local debugging if URL param ?debug=1 exists
-                    const urlParams = new URLSearchParams(window.location.search);
-                    if (!tg.initDataUnsafe?.user && !urlParams.get('debug')) {
-                         setIsTelegram(false); // Enable strict check in production
-                    }
+                // Check Telegram
+                try {
+                    if (window.Telegram && window.Telegram.WebApp) {
+                        const tg = window.Telegram.WebApp;
+                        tg.ready();
+                        tg.expand();
+                        
+                        const urlParams = new URLSearchParams(window.location.search);
+                        // Strict check, but gentle fallback
+                        if (!tg.initDataUnsafe?.user && !urlParams.get('debug')) {
+                             // setIsTelegram(false); // Commented out for smoother testing if user opens directly
+                        }
 
-                    if (tg.initDataUnsafe?.user) {
-                        setUserData(prev => ({ ...prev, name: tg.initDataUnsafe.user.first_name }));
+                        if (tg.initDataUnsafe?.user) {
+                            setUserData(prev => ({ ...prev, name: tg.initDataUnsafe.user.first_name }));
+                        }
+                        
+                        tg.setHeaderColor('#0f0720');
+                        tg.setBackgroundColor('#0f0720');
+                        if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
+                    } else {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        if (!urlParams.get('debug')) {
+                             setIsTelegram(false);
+                        }
                     }
-                    
-                    // Set theme colors
-                    tg.setHeaderColor('#0f0720');
-                    tg.setBackgroundColor('#0f0720');
-                    if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
-                } else {
-                    setIsTelegram(false);
+                } catch(e) {
+                    console.warn("Telegram API Warning", e);
                 }
 
-                // 2. Load History
+                // Load History
                 try {
                     const savedHistory = localStorage.getItem('pollinations_chat_history');
                     if (savedHistory) {
@@ -245,26 +248,21 @@
                     }
                 } catch(e) { createNewChat(); }
 
-                // 3. Load Models
                 fetchModels();
                 
-                // Greeting Time Logic
                 const hour = new Date().getHours();
                 let greeting = "Доброй ночи";
                 if (hour >= 4 && hour < 12) greeting = "Доброе утро";
                 else if (hour >= 12 && hour < 17) greeting = "Добрый день";
                 else if (hour >= 17 && hour < 24) greeting = "Добрый вечер";
-                
                 setUserData(prev => ({ ...prev, greeting }));
 
             }, []);
 
-            // Auto-scroll
             useEffect(() => {
                 messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
             }, [messages, isLoading]);
 
-            // Save history effect
             useEffect(() => {
                 if (currentChatId) {
                     const updatedHistory = history.map(chat => 
@@ -272,16 +270,10 @@
                     );
                     
                     if (!updatedHistory.find(c => c.id === currentChatId)) {
-                        updatedHistory.unshift({ 
-                            id: currentChatId, 
-                            title: 'Новый чат', 
-                            messages: messages, 
-                            model: selectedModel, 
-                            timestamp: Date.now() 
-                        });
+                        updatedHistory.unshift({ id: currentChatId, title: 'Новый чат', messages: messages, model: selectedModel, timestamp: Date.now() });
                     }
                     
-                    // Auto-Title Logic
+                    // Auto-Title
                     const currentChat = updatedHistory.find(c => c.id === currentChatId);
                     if (currentChat && currentChat.messages.length > 0 && currentChat.title === 'Новый чат') {
                         const firstMsg = currentChat.messages.find(m => m.role === 'user');
@@ -291,21 +283,16 @@
                             currentChat.title = title;
                         }
                     }
-
                     setHistory(updatedHistory);
                     localStorage.setItem('pollinations_chat_history', JSON.stringify(updatedHistory));
                 }
             }, [messages, currentChatId]);
-
-
-            // --- Functions ---
 
             const fetchModels = async () => {
                 try {
                     const res = await fetch('https://enter.pollinations.ai/api/generate/text/models');
                     const data = await res.json();
                     setModels(data);
-                    // Try to find OpenAI or first available
                     if(data.find(m => m.name === 'openai')) setSelectedModel('openai');
                     else if (data.length > 0) setSelectedModel(data[0].name);
                 } catch (e) {
@@ -316,15 +303,6 @@
 
             const createNewChat = () => {
                 const newId = Date.now();
-                const newChat = {
-                    id: newId,
-                    title: 'Новый чат',
-                    messages: [],
-                    model: 'openai',
-                    timestamp: Date.now()
-                };
-                // Only add to history state if the current chat isn't empty, otherwise we get spam of empty chats
-                // But for simplicity let's just reset view
                 setCurrentChatId(newId);
                 setMessages([]);
                 setActiveTab('chat');
@@ -351,7 +329,6 @@
                 }
             };
 
-            // --- Send Logic ---
             const handleSend = async () => {
                 if (!input.trim() || isLoading) return;
 
@@ -384,17 +361,13 @@
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let aiMsgContent = '';
-                        
-                        // Add placeholder message
                         setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
                         while (true) {
                             const { done, value } = await reader.read();
                             if (done) break;
-                            
                             const chunk = decoder.decode(value);
                             const lines = chunk.split('\n');
-                            
                             for (const line of lines) {
                                 if (line.startsWith('data: ')) {
                                     const dataStr = line.replace('data: ', '');
@@ -403,8 +376,6 @@
                                         const json = JSON.parse(dataStr);
                                         const content = json.choices[0]?.delta?.content || '';
                                         aiMsgContent += content;
-                                        
-                                        // Update UI live
                                         setMessages(prev => {
                                             const newMsgs = [...prev];
                                             newMsgs[newMsgs.length - 1].content = aiMsgContent;
@@ -416,96 +387,67 @@
                         }
                         await checkAndGenerateImage(aiMsgContent);
                     } else {
-                        // Non-streaming fallback
                         const data = await response.json();
                         const aiContent = data.choices[0].message.content;
                         setMessages(prev => [...prev, { role: 'assistant', content: aiContent }]);
                         await checkAndGenerateImage(aiContent);
                     }
-
                 } catch (error) {
-                    console.error(error);
-                    setMessages(prev => [...prev, { role: 'assistant', content: '_Ошибка сети. Попробуйте позже или смените модель._' }]);
+                    setMessages(prev => [...prev, { role: 'assistant', content: '_Ошибка сети. Попробуйте позже._' }]);
                 } finally {
                     setIsLoading(false);
                 }
             };
 
-            // Image Generation Logic
             const checkAndGenerateImage = async (content) => {
                 if (content.includes("IMAGE_GENERATE_CMD:")) {
                     const prompt = content.replace("IMAGE_GENERATE_CMD:", "").trim();
-                    
                     setMessages(prev => {
                         const newMsgs = [...prev];
                         const seed = Math.floor(Math.random() * 10000);
                         const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?n=${seed}`;
-                        
-                        // Replace text with Markdown Image
                         newMsgs[newMsgs.length - 1].content = `🎨 **Генерация:** ${prompt}\n\n![Generated Image](${imageUrl})`;
                         return newMsgs;
                     });
                 }
             };
 
-            // --- Render ---
             if (!isTelegram) return <AccessDenied />;
 
             return (
                 <div className="flex flex-col h-screen bg-gradient-to-br from-gray-900 via-[#1e1b4b] to-[#2e1065] text-white">
-                    
                     {/* Header */}
                     <div className="px-5 py-4 bg-[#0f0720]/80 backdrop-blur-md border-b border-purple-500/20 flex items-center justify-between shrink-0 shadow-lg z-20">
                         <div>
-                            <h1 className="text-xs font-medium text-purple-300 tracking-widest uppercase opacity-80">
-                                {userData.greeting},
-                            </h1>
-                            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-200 via-pink-300 to-purple-200">
-                                {userData.name}
-                            </h2>
+                            <h1 className="text-xs font-medium text-purple-300 tracking-widest uppercase opacity-80">{userData.greeting},</h1>
+                            <h2 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-200 via-pink-300 to-purple-200">{userData.name}</h2>
                         </div>
                         <div className="bg-purple-600/20 p-2 rounded-full border border-purple-500/30">
-                            <Sparkles size={20} className="text-purple-300 animate-pulse" />
+                            <Icons.Sparkles size={20} className="text-purple-300 animate-pulse" />
                         </div>
                     </div>
 
-                    {/* Main Content Area */}
+                    {/* Content */}
                     <div className="flex-1 overflow-hidden relative">
-                        
-                        {/* CHAT TAB */}
                         {activeTab === 'chat' && (
                             <div className="h-full flex flex-col">
-                                {/* Model Selector Floating */}
                                 <div className="absolute top-4 left-0 right-0 flex justify-center z-10 pointer-events-none">
                                     <div className="pointer-events-auto">
-                                        <ModelSelector 
-                                            models={models} 
-                                            selectedModel={selectedModel} 
-                                            onSelect={setSelectedModel}
-                                            loading={models.length === 0}
-                                        />
+                                        <ModelSelector models={models} selectedModel={selectedModel} onSelect={setSelectedModel} loading={models.length === 0} />
                                     </div>
                                 </div>
-
-                                {/* Messages Area */}
                                 <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-4 pt-16">
                                     {messages.length === 0 && (
                                         <div className="h-full flex flex-col items-center justify-center opacity-50 text-center px-8 mt-[-40px]">
                                             <div className="w-24 h-24 bg-gradient-to-br from-purple-600/20 to-indigo-600/20 rounded-full flex items-center justify-center mb-6 border border-purple-500/30">
-                                                <MessageSquare size={40} className="text-purple-300" />
+                                                <Icons.MessageSquare size={40} className="text-purple-300" />
                                             </div>
                                             <p className="text-base font-medium text-purple-200">Чем могу помочь?</p>
-                                            <p className="text-xs text-purple-400 mt-2">Я умею писать тексты, код и рисовать картинки.</p>
                                         </div>
                                     )}
-                                    
                                     {messages.map((msg, idx) => (
                                         <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
-                                            <div className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-lg ${
-                                                msg.role === 'user' 
-                                                ? 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white rounded-tr-sm' 
-                                                : 'bg-[#1e1b4b]/90 border border-purple-500/30 text-purple-100 rounded-tl-sm backdrop-blur-sm'
-                                            }`}>
+                                            <div className={`max-w-[85%] rounded-2xl px-4 py-3 shadow-lg ${msg.role === 'user' ? 'bg-gradient-to-br from-purple-600 to-indigo-700 text-white rounded-tr-sm' : 'bg-[#1e1b4b]/90 border border-purple-500/30 text-purple-100 rounded-tl-sm backdrop-blur-sm'}`}>
                                                 <MarkdownRenderer content={msg.content} />
                                             </div>
                                         </div>
@@ -513,78 +455,38 @@
                                     {isLoading && messages[messages.length-1]?.role === 'user' && (
                                         <div className="flex justify-start animate-fade-in">
                                              <div className="bg-[#1e1b4b]/80 border border-purple-500/30 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center space-x-1">
-                                                <div className="typing-dot"></div>
-                                                <div className="typing-dot"></div>
-                                                <div className="typing-dot"></div>
+                                                <div className="typing-dot"></div><div className="typing-dot"></div><div className="typing-dot"></div>
                                             </div>
                                         </div>
                                     )}
                                     <div ref={messagesEndRef} />
                                 </div>
-
-                                {/* Input Area */}
                                 <div className="p-3 bg-[#0f0720]/95 border-t border-purple-500/20 backdrop-blur-xl mb-[60px]"> 
                                     <div className="relative flex items-end gap-2">
-                                        <input
-                                            type="text"
-                                            value={input}
-                                            onChange={(e) => setInput(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                                            placeholder="Сообщение..."
-                                            className="w-full bg-[#1e1b4b] border border-purple-500/30 rounded-2xl pl-4 pr-12 py-3.5 text-sm focus:outline-none focus:border-purple-500 transition-all text-white placeholder-purple-400/50 shadow-inner"
-                                        />
-                                        <button 
-                                            onClick={handleSend}
-                                            disabled={isLoading || !input.trim()}
-                                            className={`absolute right-2 bottom-2 p-2 rounded-xl transition-all ${
-                                                input.trim() 
-                                                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_15px_rgba(147,51,234,0.5)]' 
-                                                : 'bg-transparent text-gray-600'
-                                            }`}
-                                        >
-                                            <Send size={20} />
+                                        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Сообщение..." className="w-full bg-[#1e1b4b] border border-purple-500/30 rounded-2xl pl-4 pr-12 py-3.5 text-sm focus:outline-none focus:border-purple-500 transition-all text-white placeholder-purple-400/50 shadow-inner" />
+                                        <button onClick={handleSend} disabled={isLoading || !input.trim()} className={`absolute right-2 bottom-2 p-2 rounded-xl transition-all ${input.trim() ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white' : 'bg-transparent text-gray-600'}`}>
+                                            <Icons.Send size={20} />
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* HISTORY TAB */}
                         {activeTab === 'history' && (
                             <div className="h-full overflow-y-auto p-4 pb-24">
-                                <button 
-                                    onClick={createNewChat}
-                                    className="w-full py-4 mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center font-bold shadow-lg shadow-purple-900/50 active:scale-95 transition-transform border border-purple-400/20"
-                                >
-                                    <Plus size={20} className="mr-2" /> Новый чат
+                                <button onClick={createNewChat} className="w-full py-4 mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl flex items-center justify-center font-bold shadow-lg shadow-purple-900/50 active:scale-95 transition-transform border border-purple-400/20">
+                                    <Icons.Plus size={20} className="mr-2" /> Новый чат
                                 </button>
-                                
-                                <h3 className="text-xs font-bold uppercase text-purple-400 mb-4 tracking-widest px-1">История диалогов</h3>
+                                <h3 className="text-xs font-bold uppercase text-purple-400 mb-4 tracking-widest px-1">История</h3>
                                 <div className="space-y-3">
                                     {history.map(chat => (
-                                        <div 
-                                            key={chat.id} 
-                                            onClick={() => loadChat(chat.id)}
-                                            className={`group relative p-4 rounded-xl border transition-all cursor-pointer ${
-                                                currentChatId === chat.id 
-                                                ? 'bg-purple-900/40 border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.2)]' 
-                                                : 'bg-[#1e1b4b]/40 border-transparent hover:bg-[#1e1b4b]/60'
-                                            }`}
-                                        >
+                                        <div key={chat.id} onClick={() => loadChat(chat.id)} className={`group relative p-4 rounded-xl border transition-all cursor-pointer ${currentChatId === chat.id ? 'bg-purple-900/40 border-purple-500/50' : 'bg-[#1e1b4b]/40 border-transparent hover:bg-[#1e1b4b]/60'}`}>
                                             <div className="flex justify-between items-start">
                                                 <div className="overflow-hidden">
                                                     <h4 className="font-semibold text-sm text-purple-100 mb-1 truncate pr-2">{chat.title}</h4>
-                                                    <p className="text-[10px] text-gray-400 flex items-center">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-purple-500 mr-2"></span>
-                                                        {new Date(chat.timestamp).toLocaleDateString()} • {chat.model}
-                                                    </p>
+                                                    <p className="text-[10px] text-gray-400 flex items-center"><span className="w-1.5 h-1.5 rounded-full bg-purple-500 mr-2"></span>{new Date(chat.timestamp).toLocaleDateString()} • {chat.model}</p>
                                                 </div>
-                                                <button 
-                                                    onClick={(e) => deleteChat(e, chat.id)}
-                                                    className="p-2 text-gray-600 hover:text-red-400 transition-colors z-10"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                <button onClick={(e) => deleteChat(e, chat.id)} className="p-2 text-gray-600 hover:text-red-400 transition-colors z-10"><Icons.Trash2 size={16} /></button>
                                             </div>
                                         </div>
                                     ))}
@@ -593,96 +495,48 @@
                             </div>
                         )}
 
-                        {/* SETTINGS TAB */}
                         {activeTab === 'settings' && (
                             <div className="h-full p-6 space-y-6 overflow-y-auto pb-24">
                                 <h2 className="text-2xl font-bold text-white mb-6">Настройки</h2>
-                                
                                 <div className="bg-[#1e1b4b]/50 rounded-2xl p-5 border border-purple-500/20 backdrop-blur-sm">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center">
-                                            <div className="bg-purple-900/50 p-2.5 rounded-xl mr-4 border border-purple-500/20">
-                                                <Sparkles size={20} className="text-purple-300" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-sm font-semibold text-white">Стриминг текста</h3>
-                                                <p className="text-[10px] text-gray-400 mt-0.5">Эффект печатания в реальном времени</p>
-                                            </div>
+                                            <div className="bg-purple-900/50 p-2.5 rounded-xl mr-4 border border-purple-500/20"><Icons.Sparkles size={20} className="text-purple-300" /></div>
+                                            <div><h3 className="text-sm font-semibold text-white">Стриминг текста</h3><p className="text-[10px] text-gray-400 mt-0.5">Эффект печатания в реальном времени</p></div>
                                         </div>
-                                        <button 
-                                            onClick={() => setSettings({...settings, stream: !settings.stream})}
-                                            className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${settings.stream ? 'bg-purple-600' : 'bg-gray-800'}`}
-                                        >
-                                            <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm ${settings.stream ? 'left-6' : 'left-1'}`} />
-                                        </button>
+                                        <button onClick={() => setSettings({...settings, stream: !settings.stream})} className={`w-12 h-7 rounded-full relative transition-colors duration-300 ${settings.stream ? 'bg-purple-600' : 'bg-gray-800'}`}><div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all duration-300 shadow-sm ${settings.stream ? 'left-6' : 'left-1'}`} /></button>
                                     </div>
                                 </div>
-
-                                <div className="bg-[#1e1b4b]/30 rounded-2xl p-5 border border-purple-500/10">
-                                    <div className="space-y-3">
-                                        <h3 className="text-sm font-semibold text-gray-300">О приложении</h3>
-                                        <div className="flex justify-between text-xs text-gray-500 py-1 border-b border-gray-800">
-                                            <span>Версия</span>
-                                            <span>1.0.0</span>
-                                        </div>
-                                        <div className="flex justify-between text-xs text-gray-500 py-1 border-b border-gray-800">
-                                            <span>API</span>
-                                            <span>Pollinations.ai</span>
-                                        </div>
-                                        <div className="flex justify-between text-xs text-gray-500 py-1">
-                                            <span>Платформа</span>
-                                            <span>Telegram Web App</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
                                 <div className="text-center pt-8 opacity-30">
-                                    <div className="w-12 h-12 bg-purple-900/50 rounded-full mx-auto flex items-center justify-center mb-2">
-                                        <ImageIcon size={20} />
-                                    </div>
+                                    <div className="w-12 h-12 bg-purple-900/50 rounded-full mx-auto flex items-center justify-center mb-2"><Icons.Image size={20} /></div>
                                     <p className="text-[10px]">Powered by Pollinations AI</p>
                                 </div>
                             </div>
                         )}
-
                     </div>
 
-                    {/* Bottom Navigation */}
+                    {/* Bottom Nav */}
                     <div className="h-[60px] bg-[#0f0720] border-t border-purple-500/20 flex justify-around items-center px-2 absolute bottom-0 w-full z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
-                        <button 
-                            onClick={() => setActiveTab('history')}
-                            className={`flex flex-col items-center justify-center w-1/3 h-full space-y-1 transition-all active:scale-95 ${activeTab === 'history' ? 'text-purple-400' : 'text-gray-600'}`}
-                        >
-                            <Clock size={22} className={activeTab === 'history' ? 'drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]' : ''} />
+                        <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center justify-center w-1/3 h-full space-y-1 transition-all active:scale-95 ${activeTab === 'history' ? 'text-purple-400' : 'text-gray-600'}`}>
+                            <Icons.Clock size={22} className={activeTab === 'history' ? 'drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]' : ''} />
                             <span className="text-[10px] font-medium">История</span>
                         </button>
-
-                        <button 
-                            onClick={() => setActiveTab('chat')}
-                            className={`flex flex-col items-center justify-center w-1/3 h-full -mt-8`}
-                        >
+                        <button onClick={() => setActiveTab('chat')} className={`flex flex-col items-center justify-center w-1/3 h-full -mt-8`}>
                             <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg transition-transform duration-300 border-4 border-[#0f0720] ${activeTab === 'chat' ? 'bg-gradient-to-br from-purple-600 to-indigo-600 scale-110 shadow-purple-600/40 text-white' : 'bg-gray-800 text-gray-400'}`}>
-                                <MessageSquare size={26} />
+                                <Icons.MessageSquare size={26} />
                             </div>
                         </button>
-
-                        <button 
-                            onClick={() => setActiveTab('settings')}
-                            className={`flex flex-col items-center justify-center w-1/3 h-full space-y-1 transition-all active:scale-95 ${activeTab === 'settings' ? 'text-purple-400' : 'text-gray-600'}`}
-                        >
-                            <Settings size={22} className={activeTab === 'settings' ? 'drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]' : ''} />
+                        <button onClick={() => setActiveTab('settings')} className={`flex flex-col items-center justify-center w-1/3 h-full space-y-1 transition-all active:scale-95 ${activeTab === 'settings' ? 'text-purple-400' : 'text-gray-600'}`}>
+                            <Icons.Settings size={22} className={activeTab === 'settings' ? 'drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]' : ''} />
                             <span className="text-[10px] font-medium">Настройки</span>
                         </button>
                     </div>
-
                 </div>
             );
         };
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-        
-        lucide.createIcons();
     </script>
 </body>
 </html>
